@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<inkscape-extension xmlns="http://www.inkscape.org/namespace/inkscape/extension">
+    <name>Visio Import VSD</name>
+    <id>org.inkscape.input.visio_import_vsd</id>
+    <param name="page" type="int" min="0" max="100" gui-text="Page number (0-based):">0</param>
+    <input>
+        <extension>.vsd</extension>
+        <mimetype>application/vnd.visio</mimetype>
+        <filetypename>Microsoft Visio Drawing (*.vsd)</filetypename>
+        <filetypetooltip>Import Microsoft Visio Binary Drawing (97-2003)</filetypetooltip>
+    </input>
+    <script>
+        <command location="inx" interpreter="python">visio_import.py</command>
+    </script>
+</inkscape-extension>
