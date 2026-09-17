@@ -49,7 +49,7 @@ You can choose which page to import (0-based page number).
 ## Requirements
 
 - Inkscape 1.0 or later
-- Python 3.8+
+- Python 3.10+
 - libvisio-ng (`pip install libvisio-ng`)
 
 ## License
@@ -61,3 +61,9 @@ GPL-2.0-or-later — same as Inkscape.
 - [libvisio-ng on PyPI](https://pypi.org/project/libvisio-ng/)
 - [Inkscape Extensions](https://inkscape.org/gallery/)
 - [GitLab MR #718](https://gitlab.com/inkscape/extensions/-/merge_requests/718) — original merge request
+
+## Development
+
+Run adapter regression tests with `python3 -m pytest tests -q` after installing
+`pytest`, `lxml`, and `libvisio-ng`. The Inkscape UI base class is stubbed; parsing
+and temporary-file lifecycle are exercised without launching Inkscape.

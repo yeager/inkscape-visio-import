@@ -35,7 +35,7 @@ from lxml import etree
 import inkex
 
 try:
-    from libvisio_ng import convert, get_page_info
+    from libvisio_ng import convert
 except ImportError:
     inkex.errormsg(
         "The libvisio-ng Python package is required for Visio import.\n"
@@ -59,33 +59,35 @@ class VisioImport(inkex.InputExtension):
 
     def load(self, stream):
         """Load a Visio file and convert to SVG."""
-        # Write stream to a temp file since libvisio-ng requires a file path
-        if hasattr(stream, "name") and os.path.exists(stream.name):
-            file_path = stream.name
-            tmp_path = None
-        else:
-            suffix = ".vsdx"
-            with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-                tmp.write(stream.read())
-                tmp_path = tmp.name
-            file_path = tmp_path
+        # Keep both the input copy and converted pages within one owned directory.
+        with tempfile.TemporaryDirectory(prefix="inkscape_visio_") as output_dir:
+            name = getattr(stream, "name", None)
+            if isinstance(name, (str, bytes, os.PathLike)) and os.path.isfile(name):
+                file_path = name
+            else:
+                data = stream.read()
+                # Anonymous binary streams must retain the .vsd parser dispatch.
+                suffix = ".vsd" if data.startswith(bytes.fromhex("D0CF11E0A1B11AE1")) else ".vsdx"
+                file_path = os.path.join(output_dir, "input" + suffix)
+                with open(file_path, "wb") as tmp:
+                    tmp.write(data)
 
-        try:
-            output_dir = tempfile.mkdtemp(prefix="inkscape_visio_")
-            svg_files = convert(file_path, output_dir=output_dir)
+            try:
+                svg_files = convert(file_path, output_dir=output_dir)
+            except (RuntimeError, OSError) as error:
+                raise inkex.AbortExtension(str(error)) from error
 
             if not svg_files:
-                inkex.errormsg("No pages found in the Visio file.")
-                sys.exit(1)
-
-            page_idx = min(self.options.page, len(svg_files) - 1)
-            svg_path = svg_files[page_idx]
-
-            with open(svg_path, "rb") as svg_file:
+                raise inkex.AbortExtension("No pages found in the Visio file.")
+            page_idx = self.options.page
+            if not 0 <= page_idx < len(svg_files):
+                raise inkex.AbortExtension(
+                    f"Page {page_idx} is out of range; choose 0–{len(svg_files) - 1}."
+                )
+            # Parse fully before the temporary directory is removed.
+            with open(svg_files[page_idx], "rb") as svg_file:
                 return etree.parse(svg_file).getroot()
-        finally:
-            if tmp_path is not None:
-                os.unlink(tmp_path)
+
 
 
 if __name__ == "__main__":
